@@ -1,42 +1,3 @@
-<#PSScriptInfo
-
-.VERSION 2025.7.3
-
-.GUID 309659cf-0358-4996-9992-34f8a7dc09b9
-
-.AUTHOR Martin Olsson
-
-.COMPANYNAME Conmodo
-
-.COPYRIGHT (c) Conmodo. All rights reserved.
-
-.TAGS
-
-.LICENSEURI
-
-.PROJECTURI
-
-.ICONURI
-
-.EXTERNALMODULEDEPENDENCIES 
-
-.REQUIREDSCRIPTS
-
-.EXTERNALSCRIPTDEPENDENCIES
-
-.RELEASENOTES
-
-
-.PRIVATEDATA
-
-#>
-
-<# 
-
-.DESCRIPTION 
- Upgrade a computer to Windows 11 
-
-#> 
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [switch]$Force
@@ -211,4 +172,5 @@ else {
         Remove-Item -Path $installerFilePath
     }
     throw "The script has determined that this isn't a Windows 10 system. Use the Force parameter if you want to bypass this check and run the upgrade anyway."
+
 }
