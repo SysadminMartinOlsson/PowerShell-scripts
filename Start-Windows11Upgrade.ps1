@@ -1,3 +1,42 @@
+<#PSScriptInfo
+
+.VERSION 2025.8.2
+
+.GUID 309659cf-0358-4996-9992-34f8a7dc09b9
+
+.AUTHOR Martin Olsson
+
+.COMPANYNAME Conmodo
+
+.COPYRIGHT (c) Conmodo. All rights reserved.
+
+.TAGS
+
+.LICENSEURI
+
+.PROJECTURI
+
+.ICONURI
+
+.EXTERNALMODULEDEPENDENCIES 
+
+.REQUIREDSCRIPTS
+
+.EXTERNALSCRIPTDEPENDENCIES
+
+.RELEASENOTES
+
+
+.PRIVATEDATA
+
+#>
+
+<# 
+
+.DESCRIPTION 
+ Upgrade a computer to Windows 11 
+
+#> 
 [CmdletBinding(SupportsShouldProcess)]
 param(
     [switch]$Force
@@ -139,6 +178,13 @@ if ($isSystemValidForUpgrade -or $Force) {
         }
     }
 
+    # Stop any currently running Windows upgrade installation assistant process.
+    $installationAssistantProcessName = 'Windows10UpgraderApp'
+    $installationAssistantProcessCount = (Get-Process -Name $installationAssistantProcessName | Measure-Object).Count
+    if ($installationAssistantProcessCount -gt 0) {
+        Stop-Process -Name $installationAssistantProcessName
+    }
+
     # Upgrade the OS, then automatically restart the system.
     if ($PSCmdlet.ShouldProcess("URL: $installerDownloadUrl", 'Download installer')) {
         try {
@@ -172,5 +218,4 @@ else {
         Remove-Item -Path $installerFilePath
     }
     throw "The script has determined that this isn't a Windows 10 system. Use the Force parameter if you want to bypass this check and run the upgrade anyway."
-
 }
