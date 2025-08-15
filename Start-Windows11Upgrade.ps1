@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.8.4
+.VERSION 2025.8.5
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -179,7 +179,7 @@ if ($isSystemValidForUpgrade -or $Force) {
         }
     }
 
-    # Stop any currently running Windows upgrade installation assistant process.
+    # Stop any currently running Windows upgrade processes.
     $installationAssistantProcessName = 'Windows10UpgraderApp'
     $installationAssistantProcess = Get-Process -Name $installationAssistantProcessName -ErrorAction SilentlyContinue
     $installationAssistantProcessCount = ($installationAssistantProcess | Measure-Object).Count
