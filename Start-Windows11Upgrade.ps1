@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.8.2
+.VERSION 2025.8.3
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -39,6 +39,9 @@
 #> 
 [CmdletBinding(SupportsShouldProcess)]
 param(
+    [ValidateNotNull()]
+    [string]$InstallerURL = 'https://go.microsoft.com/fwlink/?linkid=2171764',
+
     [switch]$Force
 )
 
@@ -91,14 +94,12 @@ if ([string]::IsNullOrEmpty($systemDrive)) {
 $scriptVersion = Get-ScriptVersion -FilePath (Join-Path -Path $PSScriptRoot -ChildPath $PSCmdlet.MyInvocation.MyCommand)
 $tempDirectoryPath = Join-Path -Path $systemDrive -ChildPath 'Temp'
 $logFilePath = Join-Path -Path $tempDirectoryPath -ChildPath 'Start-Windows11Upgrade.log'
+$installerFilePath = Join-Path -Path $tempDirectoryPath -ChildPath 'Windows11InstallationAssistant.exe'
 
 $logParams = @{
     FilePath = $logFilePath
     ScriptVersion = $scriptVersion
 }
-
-$installerDownloadUrl = 'https://go.microsoft.com/fwlink/?linkid=2171764'
-$installerFilePath = Join-Path -Path $tempDirectoryPath -ChildPath 'Windows11InstallationAssistant.exe'
 
 Write-Verbose "Logs will be stored in: $logFilePath"
 
@@ -180,16 +181,17 @@ if ($isSystemValidForUpgrade -or $Force) {
 
     # Stop any currently running Windows upgrade installation assistant process.
     $installationAssistantProcessName = 'Windows10UpgraderApp'
-    $installationAssistantProcessCount = (Get-Process -Name $installationAssistantProcessName | Measure-Object).Count
+    $installationAssistantProcess = Get-Process -Name $installationAssistantProcessName -ErrorAction SilentlyContinue
+    $installationAssistantProcessCount = ($installationAssistantProcess | Measure-Object).Count
     if ($installationAssistantProcessCount -gt 0) {
         Stop-Process -Name $installationAssistantProcessName
     }
 
     # Upgrade the OS, then automatically restart the system.
-    if ($PSCmdlet.ShouldProcess("URL: $installerDownloadUrl", 'Download installer')) {
+    if ($PSCmdlet.ShouldProcess("URL: $InstallerURL", 'Download installer')) {
         try {
             $webClient = New-Object System.Net.WebClient
-            $webClient.DownloadFile($installerDownloadUrl, $installerFilePath)
+            $webClient.DownloadFile($InstallerURL, $installerFilePath)
             Out-LogFile @logParams -Content "Downloaded the Windows 11 installation assistant to '$installerFilePath'."
         }
         catch {
