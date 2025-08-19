@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.8.5
+.VERSION 2025.8.6
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -202,7 +202,9 @@ if ($isSystemValidForUpgrade -or $Force) {
 
     if ($PSCmdlet.ShouldProcess("File: $installerFilePath", 'Start Windows 11 upgrade')) {
         try {
-            Write-Verbose 'Started the Windows 11 upgrade. This will take a while...'
+            Write-Verbose ('Started the Windows 11 upgrade at {0}. The upgrade will take approximately 30-60 minutes.' -f (Get-Date -Format 'HH:mm'))
+            Write-Verbose 'The computer will automatically reboot when the upgrade is finished.'
+            Write-Verbose 'Installing Windows 11...'
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
 
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
