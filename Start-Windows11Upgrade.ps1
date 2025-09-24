@@ -92,12 +92,11 @@ function Get-OneDriveSyncState {
             }
         }
         else {
-            if ((Get-Item -Path $syncDiagnosticsFilePath).LastWriteTime -le (Get-Date).Date.AddDays(-1)) {
-                $stateValue = 'Not recently synced'
-            }
-            else {
-                $stateValue = 'Invalid sync state'
-            }
+            $stateValue = 'Invalid sync state'
+        }
+
+        if ((Get-Item -Path $syncDiagnosticsFilePath).LastWriteTime -le (Get-Date).Date.AddDays(-1)) {
+            $stateValue = 'Not recently synced'
         }
     }
     else {
