@@ -67,7 +67,7 @@ function Get-OneDriveSyncState {
     $stateValue = $null
 
     if (Test-Path -Path $syncDiagnosticsFilePath) {
-        $progressState = Get-Content -Path $syncDiagnosticsFilePath | Where-Object { $_.Contains("SyncProgressState") } | ForEach-Object { -split $_ | Select-Object -Index 1 }
+        $progressState = Get-Content -Path $syncDiagnosticsFilePath -ErrorAction SilentlyContinue | Where-Object { $_.Contains("SyncProgressState") } | ForEach-Object { -split $_ | Select-Object -Index 1 }
         if ($progressState) {
             switch ($progressState){
                 0 { $stateValue = "Healthy" }
@@ -92,15 +92,16 @@ function Get-OneDriveSyncState {
             }
         }
         else {
-            $stateValue = 'Invalid sync state'
+            if ((Get-Item -Path $syncDiagnosticsFilePath).LastWriteTime -le (Get-Date).Date.AddDays(-1)) {
+                $stateValue = 'Not recently synced'
+            }
+            else {
+                $stateValue = 'Invalid sync state'
+            }
         }
     }
     else {
         $stateValue = 'No sync state'
-    }
-
-    if ((Get-Item -Path $syncDiagnosticsFilePath).LastWriteTime -le (Get-Date).Date.AddDays(-1)) {
-        $stateValue = 'Not recently synced'
     }
 
     return $stateValue
