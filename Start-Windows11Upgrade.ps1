@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.8.6
+.VERSION 2025.8.9
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -34,7 +34,7 @@
 <# 
 
 .DESCRIPTION 
- Upgrade a computer to Windows 11 
+ Upgrade from Windows 10 to Windows 11 
 
 #> 
 [CmdletBinding(SupportsShouldProcess)]
@@ -52,7 +52,7 @@ function Get-ScriptVersion {
         [string]$FilePath
     )
 
-    if ([string](Get-Content -Path $FilePath) -match '\.VERSION (\d{4}\.\d{1,2}\.\d+)') {
+    if ([string](Get-Content -Path $FilePath) -match '\.VERSION (\d+\.\d+\.\d+)') {
         $currentScriptVersion = $Matches[1]
     }
     if ([string]::IsNullOrEmpty($currentScriptVersion)) {
@@ -60,6 +60,50 @@ function Get-ScriptVersion {
     }
 
     return $currentScriptVersion
+}
+
+function Get-OneDriveSyncState {
+    $syncDiagnosticsFilePath = Join-Path -Path $env:LOCALAPPDATA -ChildPath '\Microsoft\OneDrive\logs\Business1\SyncDiagnostics.log'
+    $stateValue = $null
+
+    if (Test-Path -Path $syncDiagnosticsFilePath) {
+        $progressState = Get-Content -Path $syncDiagnosticsFilePath | Where-Object { $_.Contains("SyncProgressState") } | ForEach-Object { -split $_ | Select-Object -Index 1 }
+        if ($progressState) {
+            switch ($progressState){
+                0 { $stateValue = "Healthy" }
+                10 { $stateValue = "File merge conflict" }
+                42{ $stateValue = "Healthy" }
+                256 { $stateValue = "File locked" }
+                258 { $stateValue = "File merge conflict" }
+                8456 { $stateValue = "You don't have permission to sync this library" }
+                16777216 { $stateValue = "Healthy" }
+                12544 { $stateValue = "Healthy" }
+                65536 { $stateValue = "Paused" }
+                32786 { $stateValue = "File merge conflict" }
+                4106 { $stateValue = "File merge conflict" }
+                20480 { $stateValue = "File merge conflict" }
+                24576 { $stateValue = "File merge conflict" }
+                25088 { $stateValue = "File merge conflict" }
+                8449 { $stateValue = "File locked" }
+                8194 { $stateValue = "Disabled" }
+                1854 { $stateValue = "Unhealthy" }
+                12290 { $stateValue = "Access permission" }
+                default { $stateValue = "Unknown: $progressState" }
+            }
+        }
+        else {
+            $stateValue = 'Invalid sync state'
+        }
+    }
+    else {
+        $stateValue = 'No sync state'
+    }
+
+    if ((Get-Item -Path $syncDiagnosticsFilePath).LastWriteTime -le (Get-Date).Date.AddDays(-1)) {
+        $stateValue = 'Not recently synced'
+    }
+
+    return $stateValue
 }
 
 function Out-LogFile {
@@ -113,19 +157,29 @@ $WindowsIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
 $WindowsPrincipal = [Security.Principal.WindowsPrincipal] $WindowsIdentity
 $AdminRole = [Security.Principal.WindowsBuiltInRole]::Administrator
 if (-not $WindowsPrincipal.IsInRole($AdminRole)) {
-    Out-LogFile @logParams -Content 'The script needs to run as administrator.'
-    throw 'The script needs to run as administrator.'
+    Out-LogFile @logParams -Content 'The script needs to run as an administrator.'
+    throw 'The script needs to run as an administrator.'
 }
 
-# Determine if the system is valid for upgrade.
-$isSystemValidForUpgrade = $false
+# Determine if the system is eligible for upgrade.
+$isSystemEligibleForUpgrade = $false
 $osName = (Get-ComputerInfo).OsName
 if ($osName -match 'Windows 10') {
-    $isSystemValidForUpgrade = $true
+    $isSystemEligibleForUpgrade = $true
 }
 
-# Only upgrade if the system is valid for upgrade (or if using the Force parameter).
-if ($isSystemValidForUpgrade -or $Force) {
+# Only upgrade if the system is eligible for upgrade (or if using the Force parameter).
+if ($isSystemEligibleForUpgrade -or $Force) {
+    # Validate OneDrive sync state.
+    $oneDriveSyncState = Get-OneDriveSyncState
+    if ($oneDriveSyncState -ne 'Healthy') {
+        Write-Warning "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
+        Out-LogFile @logParams -Content "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
+        Write-Warning "Make sure your OneDrive is enabled and synchronized. Contact the IT department if you require help (support@conmodo.com)."
+        Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
+    }
+
+    # Check if secure boot is enabled.
     if ((Get-Command -Name 'Confirm-SecureBootUEFI' -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
         try {
             if (-not (Confirm-SecureBootUEFI -ErrorAction SilentlyContinue)) {
@@ -138,6 +192,7 @@ if ($isSystemValidForUpgrade -or $Force) {
         }
     }
 
+    # Check if TPM is active.
     $tpm = Get-WmiObject -Namespace 'Root\CIMv2\Security\MicrosoftTpm' -Class Win32_Tpm
     if (($null -eq $tpm) -or (-not $tpm.IsEnabled_InitialValue) -or (-not $tpm.IsActivated_InitialValue)) {
         Out-LogFile @logParams -Content 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
@@ -208,8 +263,8 @@ if ($isSystemValidForUpgrade -or $Force) {
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
 
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
-            Write-Verbose 'Exited the upgrade process (the script cannot know if it was successful or not).'
-            Out-LogFile @logParams -Content 'Exited the upgrade process (the script cannot know if it was successful or not).'
+            Write-Verbose 'Exited the upgrade process (the script cannot know if the upgrade was successful or not).'
+            Out-LogFile @logParams -Content 'Exited the upgrade process (the script cannot know if the upgrade was successful or not).'
         }
         catch {
             Out-LogFile @logParams -Content "The Windows 11 upgrade failed. $PSItem"
