@@ -170,7 +170,15 @@ if ($osName -match 'Windows 10') {
 
 # Only upgrade if the system is eligible for upgrade (or if using the Force parameter).
 if ($isSystemEligibleForUpgrade -or $Force) {
-    # Validate OneDrive sync state.
+    # Check free storage space.
+    $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { $_. DriveType -eq 3 } | Select-Object -Property $properties
+    $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpace / 1GB)
+    if ($freeDiskSpace -lt 40) {
+        Out-LogFile @logParams -Content "Windows requires at least 40 GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
+        throw "Windows requires at least 40 GB free disk space to be able to upgrade."
+    }
+
+    # Check OneDrive sync state.
     $oneDriveSyncState = Get-OneDriveSyncState
     if ($oneDriveSyncState -ne 'Healthy') {
         Write-Warning "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
