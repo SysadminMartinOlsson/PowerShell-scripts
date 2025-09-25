@@ -173,7 +173,8 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     # Check free storage space.
     $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { $_. DriveType -eq 3 } | Select-Object -Property $properties
     $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpace / 1GB)
-    if ($freeDiskSpace -lt 40) {
+    $requiredDiskSpace = 40
+    if ($freeDiskSpace -lt $requiredDiskSpace) {
         Out-LogFile @logParams -Content "Windows requires at least 40 GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
         throw "Windows requires at least 40 GB free disk space to be able to upgrade."
     }
