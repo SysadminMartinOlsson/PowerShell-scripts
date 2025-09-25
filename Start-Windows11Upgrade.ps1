@@ -175,11 +175,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         @{ Name = 'FreeSpaceGB'; Expression = { [float]($_.FreeSpace / 1GB) } }
     )
     $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { ($_.DriveType -eq 3) -and ($_.DeviceID -eq $env:SYSTEMDRIVE) } | Select-Object -Property $properties
-    $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpaceGB)
     $requiredDiskSpace = 40
-    if ($freeDiskSpace -lt $requiredDiskSpace) {
-        Out-LogFile @logParams -Content "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
-        throw "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
+    if ($diskInfo.FreeSpaceGB -lt $requiredDiskSpace) {
+        $freeDiskSpaceRounded = [Math]::Floor($diskInfo.FreeSpaceGB)
+        Out-LogFile @logParams -Content "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
+        Write-Warning "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
+        Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
     }
 
     # Check OneDrive sync state.
