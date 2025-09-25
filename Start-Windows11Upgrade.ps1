@@ -179,7 +179,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     $requiredDiskSpace = 40
     if ($freeDiskSpace -lt $requiredDiskSpace) {
         Out-LogFile @logParams -Content "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
-        throw "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade."
+        throw "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
     }
 
     # Check OneDrive sync state.
