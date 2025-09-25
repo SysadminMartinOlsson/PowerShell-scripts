@@ -174,7 +174,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     $properties = @(
         @{ Name = 'FreeSpaceGB'; Expression = { [float]($_.FreeSpace / 1GB) } }
     )
-    $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { ($_.DriveType -eq 3) -and ($_.DeviceID -eq $env:SYSTEMDRIVE) } | Select-Object -Property $properties
+    $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { ($_.DriveType -eq 3) -and ($_.DeviceID -eq $systemDrive) } | Select-Object -Property $properties
     $requiredDiskSpace = 40
     if ($diskInfo.FreeSpaceGB -lt $requiredDiskSpace) {
         $freeDiskSpaceRounded = [Math]::Floor($diskInfo.FreeSpaceGB)
