@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.8.9
+.VERSION 2025.9.1
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -174,12 +174,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     $properties = @(
         @{ Name = 'FreeSpaceGB'; Expression = { [float]($_.FreeSpace / 1GB) } }
     )
-    $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { $_. DriveType -eq 3 } | Select-Object -Property $properties
+    $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { ($_.DriveType -eq 3) -and ($_.DeviceID -eq $env:SYSTEMDRIVE) } | Select-Object -Property $properties
     $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpaceGB)
     $requiredDiskSpace = 40
     if ($freeDiskSpace -lt $requiredDiskSpace) {
         Out-LogFile @logParams -Content "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
-        throw "Windows requires at least 40 GB free disk space to be able to upgrade."
+        throw "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade."
     }
 
     # Check OneDrive sync state.
