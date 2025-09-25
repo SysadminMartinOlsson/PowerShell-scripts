@@ -179,8 +179,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     if ($diskInfo.FreeSpaceGB -lt $requiredDiskSpace) {
         $freeDiskSpaceRounded = [Math]::Floor($diskInfo.FreeSpaceGB)
         Out-LogFile @logParams -Content "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
-        Write-Warning "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
-        Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
+        throw "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
     }
 
     # Check OneDrive sync state.
