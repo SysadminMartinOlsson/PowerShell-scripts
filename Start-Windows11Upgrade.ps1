@@ -171,8 +171,11 @@ if ($osName -match 'Windows 10') {
 # Only upgrade if the system is eligible for upgrade (or if using the Force parameter).
 if ($isSystemEligibleForUpgrade -or $Force) {
     # Check free storage space.
+    $properties = @(
+        @{ Name = 'FreeSpaceGB'; Expression = { [float]($_.FreeSpace / 1GB) } }
+    )
     $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { $_. DriveType -eq 3 } | Select-Object -Property $properties
-    $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpace / 1GB)
+    $freeDiskSpace = [Math]::Floor($diskInfo.FreeSpaceGB)
     $requiredDiskSpace = 40
     if ($freeDiskSpace -lt $requiredDiskSpace) {
         Out-LogFile @logParams -Content "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpace GB"
