@@ -188,7 +188,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     if ($oneDriveSyncState -ne 'Healthy') {
         Write-Warning "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
         Out-LogFile @logParams -Content "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
-        Write-Warning "Make sure your OneDrive is enabled and synchronized. Contact the IT department if you require help."
+        Write-Warning "Make sure your OneDrive is enabled and synchronized.."
         Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
     }
 
