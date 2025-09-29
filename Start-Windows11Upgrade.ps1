@@ -145,7 +145,7 @@ $logParams = @{
     ScriptVersion = $scriptVersion
 }
 
-Write-Verbose "Logs will be stored in: $logFilePath"
+# Write-Verbose "Logs will be stored in: $logFilePath"
 
 if (-not (Test-Path -Path $tempDirectoryPath)) {
     Write-Verbose 'Creating temp directory...'
