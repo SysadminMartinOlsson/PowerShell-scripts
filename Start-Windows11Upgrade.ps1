@@ -187,7 +187,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     if ($oneDriveSyncState -ne 'Healthy') {
         Write-Warning "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
         Out-LogFile @logParams -Content "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
-        Write-Warning "Make sure your OneDrive is enabled and synchronized.."
+        Write-Warning 'Make sure your OneDrive is enabled and synchronized.'
         Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
     }
 
@@ -275,8 +275,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
 
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
-            Write-Verbose 'Exited the upgrade process (the script cannot know if the upgrade was successful or not).'
-            Out-LogFile @logParams -Content 'Exited the upgrade process (the script cannot know if the upgrade was successful or not).'
+            Write-Verbose "Exited the upgrade process at $((Get-Date).ToShortTimeString())."
+            Out-LogFile @logParams -Content "Exited the upgrade process at $((Get-Date).ToShortTimeString())."
+
+            Start-Sleep -Seconds 60
+            Write-Warning 'The upgrade has probably failed. The computer should have restarted itself by now.'
+            Out-LogFile @logParams -Content 'The upgrade has probably failed. The computer should have restarted itself by now.'
         }
         catch {
             Out-LogFile @logParams -Content "The Windows 11 upgrade failed. $PSItem"
