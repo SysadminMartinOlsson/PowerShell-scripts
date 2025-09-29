@@ -226,12 +226,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
                 $registryAllowUpgradeName = 'AllowUpgradesWithUnsupportedTPMOrCPU'
                 if ($null -eq (Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue)) {
                     Write-Verbose 'Creating system setup registry value...'
-                    New-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -PropertyType 'DWORD' -Value 1 -ErrorAction Stop
+                    New-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -PropertyType 'DWORD' -Value 1 -ErrorAction Stop | Out-Null
                     Out-LogFile @logParams -Content 'Added value to the registry to allow upgrade on an older device.'
                 }
                 elseif ((Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue).($registryAllowUpgradeName) -ne 1) {
                     Write-Verbose 'Updating existing system setup registry value...'
-                    Set-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -Value 1 -ErrorAction Stop
+                    Set-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -Value 1 -ErrorAction Stop | Out-Null
                     Out-LogFile @logParams -Content 'Updated value in the registry to allow upgrade on an older device.'
                 }
             }
@@ -269,7 +269,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
 
     if ($PSCmdlet.ShouldProcess("File: $installerFilePath", 'Start Windows 11 upgrade')) {
         try {
-            Write-Verbose ('Started the Windows 11 upgrade at {0}. The upgrade will take approximately 30-60 minutes.' -f (Get-Date -Format 'HH:mm'))
+            Write-Verbose ('Started the Windows 11 upgrade at {0}. The upgrade will take approximately 30 minutes.' -f (Get-Date -Format 'HH:mm'))
             Write-Verbose 'The computer will automatically reboot when the upgrade is finished.'
             Write-Verbose 'Installing Windows 11...'
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
