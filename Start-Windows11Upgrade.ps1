@@ -269,18 +269,27 @@ if ($isSystemEligibleForUpgrade -or $Force) {
 
     if ($PSCmdlet.ShouldProcess("File: $installerFilePath", 'Start Windows 11 upgrade')) {
         try {
-            Write-Verbose ('Started the Windows 11 upgrade at {0}. The upgrade will take approximately 30 minutes.' -f (Get-Date -Format 'HH:mm'))
-            Write-Verbose 'The computer will automatically reboot when the upgrade is finished.'
+            $startDateTime = Get-Date
+            Write-Verbose "Started the Windows 11 upgrade at $($startDateTime.ToShortTimeString()). The upgrade should take approximately 30-45 minutes."
+            Write-Verbose 'The computer will automatically reboot when the upgrade has finished.'
             Write-Verbose 'Installing Windows 11...'
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
-
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
-            Write-Verbose "Exited the upgrade process at $((Get-Date).ToShortTimeString())."
-            Out-LogFile @logParams -Content "Exited the upgrade process at $((Get-Date).ToShortTimeString())."
 
-            Start-Sleep -Seconds 60
-            Write-Warning 'The upgrade has probably failed. The computer should have restarted itself by now.'
-            Out-LogFile @logParams -Content 'The upgrade has probably failed. The computer should have restarted itself by now.'
+            $stopDateTime = Get-Date
+            $upgradeTotalMinutes = ($stopDateTime - $startDateTime).TotalMinutes
+            Write-Verbose "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
+            Out-LogFile @logParams -Content "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
+
+            if ($upgradeTotalMinutes -lt 15) {
+                Write-Warning "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutes minutes).".
+                Out-LogFile @logParams -Content "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutes minutes).".
+            }
+            else {
+                Start-Sleep -Seconds 60
+                Write-Warning 'The upgrade has probably failed. The computer should have restarted itself by now.'
+                Out-LogFile @logParams -Content 'The upgrade has probably failed. The computer should have restarted itself by now.'
+            }
         }
         catch {
             Out-LogFile @logParams -Content "The Windows 11 upgrade failed. $PSItem"
