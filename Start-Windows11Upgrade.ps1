@@ -171,50 +171,69 @@ if ($osName -match 'Windows 10') {
 # Only upgrade if the system is eligible for upgrade (or if using the Force parameter).
 if ($isSystemEligibleForUpgrade -or $Force) {
     # Check free storage space.
+    Write-Host "`nChecking available disk space..."
     $properties = @(
         @{ Name = 'FreeSpaceGB'; Expression = { [float]($_.FreeSpace / 1GB) } }
     )
     $diskInfo = Get-WmiObject -Class Win32_LogicalDisk -ComputerName LOCALHOST | Where-Object { ($_.DriveType -eq 3) -and ($_.DeviceID -eq $systemDrive) } | Select-Object -Property $properties
-    $requiredDiskSpace = 40
+    $requiredDiskSpace = 64
     if ($diskInfo.FreeSpaceGB -lt $requiredDiskSpace) {
         $freeDiskSpaceRounded = [Math]::Floor($diskInfo.FreeSpaceGB)
         Out-LogFile @logParams -Content "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
         throw "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
     }
+    else {
+        Write-Host 'Disk space is OK' -ForegroundColor Green
+    }
 
     # Check OneDrive sync state.
+    Write-Host "`nChecking OneDrive sync status..."
     $oneDriveSyncState = Get-OneDriveSyncState
     if ($oneDriveSyncState -ne 'Healthy') {
-        Write-Warning "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
+        Write-Host "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState" -ForegroundColor Red
+        Write-Host 'Make sure your OneDrive is enabled and synchronized.' -ForegroundColor Yellow
         Out-LogFile @logParams -Content "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
-        Write-Warning 'Make sure your OneDrive is enabled and synchronized.'
         Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
+    }
+    else {
+        Write-Host 'OneDrive is synced' -ForegroundColor Green
     }
 
     # Check if secure boot is enabled.
+    Write-Host "`nChecking Secure Boot..."
     if ((Get-Command -Name 'Confirm-SecureBootUEFI' -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
         try {
             if (-not (Confirm-SecureBootUEFI -ErrorAction SilentlyContinue)) {
-                Write-Warning "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings."
+                Write-Host "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings." -ForegroundColor Yellow
                 Out-LogFile @logParams -Content "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings."
+            }
+            else {
+                Write-Host 'Secure Boot is enabled' -ForegroundColor Green
             }
         }
         catch {
             Write-Warning 'Unable to validate if Secure Boot is enabled. The upgrade can proceed anyway.'
         }
     }
+    else {
+        Write-Warning 'Unable to verify Secure Boot state. The upgrade can proceed anyway.'
+    }
 
     # Check if TPM is active.
+    Write-Host "`nChecking TPM..."
     $tpm = Get-WmiObject -Namespace 'Root\CIMv2\Security\MicrosoftTpm' -Class Win32_Tpm
     if (($null -eq $tpm) -or (-not $tpm.IsEnabled_InitialValue) -or (-not $tpm.IsActivated_InitialValue)) {
         Out-LogFile @logParams -Content 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
         throw 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
     }
+    else {
+        Write-Host 'TPM is enabled' -ForegroundColor Green
+    }
 
     # Allow upgrade on older devices.
     $tpmMajorVersion = $tpm.SpecVersion.Split(',')[0] -as [int]
     if ($tpmMajorVersion -lt 2) {
-        Write-Warning 'The script determined that this is an older device but will try to allow the upgrade anyway.'
+        Write-Verbose 'The script determined that this is an older device but will try to allow the upgrade anyway.'
         try {
             $registrySystemSetupPath = 'HKLM:\SYSTEM\Setup\MoSetup'
             if (-not (Test-Path -Path $registrySystemSetupPath)) {
@@ -246,6 +265,18 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         }
     }
 
+    $registryWindowsUpdatePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    if (Test-Path -Path $registryWindowsUpdatePath) {
+        Write-Verbose 'Removing Windows Update release version registry values...'
+        Remove-ItemProperty -Path $registryWindowsUpdatePath -Name @('TargetReleaseVersion', 'TargetReleaseVersionInfo') -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+
+    $registryWindowsUpdateUxSettingsPath = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+    if (Test-Path -Path $registryWindowsUpdateUxSettingsPath) {
+        Write-Verbose 'Removing Windows Update offer declined registry value...'
+        Remove-ItemProperty -Path $registryWindowsUpdateUxSettingsPath -Name 'SvOfferDeclined' -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+
     # Stop any currently running Windows upgrade processes.
     $installationAssistantProcessName = 'Windows10UpgraderApp'
     $installationAssistantProcess = Get-Process -Name $installationAssistantProcessName -ErrorAction SilentlyContinue
@@ -270,16 +301,16 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     if ($PSCmdlet.ShouldProcess("File: $installerFilePath", 'Start Windows 11 upgrade')) {
         try {
             $startDateTime = Get-Date
-            Write-Verbose "Started the Windows 11 upgrade at $($startDateTime.ToShortTimeString()). The upgrade should take approximately 30-45 minutes."
-            Write-Verbose 'The computer will automatically reboot when the upgrade has finished.'
-            Write-Verbose 'Installing Windows 11...'
+            Write-Host "`nStarted the Windows 11 upgrade at $($startDateTime.ToShortTimeString()). The upgrade should take approximately 30-45 minutes." -ForegroundColor Green
+            Write-Host 'The computer will automatically reboot when the upgrade has finished.'
+            Write-Host 'Installing Windows 11...'
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
 
             $stopDateTime = Get-Date
             $upgradeTotalMinutes = ($stopDateTime - $startDateTime).TotalMinutes
             $upgradeTotalMinutesRounded = [Math]::Round($upgradeTotalMinutes)
-            Write-Verbose "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
+            Write-Host "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
             Out-LogFile @logParams -Content 'Exited the upgrade process.'
 
             if ($upgradeTotalMinutes -lt 15) {
