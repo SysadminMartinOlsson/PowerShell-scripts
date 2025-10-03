@@ -278,12 +278,13 @@ if ($isSystemEligibleForUpgrade -or $Force) {
 
             $stopDateTime = Get-Date
             $upgradeTotalMinutes = ($stopDateTime - $startDateTime).TotalMinutes
+            $upgradeTotalMinutesRounded = [Math]::Round($upgradeTotalMinutes)
             Write-Verbose "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
-            Out-LogFile @logParams -Content "Exited the upgrade process at $($stopDateTime.ToShortTimeString())."
+            Out-LogFile @logParams -Content 'Exited the upgrade process.'
 
             if ($upgradeTotalMinutes -lt 15) {
-                Write-Warning "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutes minutes)."
-                Out-LogFile @logParams -Content "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutes minutes)."
+                Write-Warning "The upgrade has probably failed. The process time was short ($upgradeTotalMinutesRounded minutes)."
+                Out-LogFile @logParams -Content "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutesRounded) minutes)."
             }
             else {
                 Start-Sleep -Seconds 60
