@@ -130,6 +130,9 @@ function Out-LogFile {
     ('[{0} | v{1}] {2}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $ScriptVersion, $Content) | Out-File -FilePath $FilePath -Append -ErrorAction Continue
 }
 
+Write-Host 'UPGRADE TO WINDOWS 11' -ForegroundColor Cyan
+Write-Host
+
 $systemDrive = $env:SystemDrive
 if ([string]::IsNullOrEmpty($systemDrive)) {
     $systemDrive = 'C:'
@@ -145,7 +148,7 @@ $logParams = @{
     ScriptVersion = $scriptVersion
 }
 
-# Write-Verbose "Logs will be stored in: $logFilePath"
+Write-Verbose "Logs will be stored in: $logFilePath"
 
 if (-not (Test-Path -Path $tempDirectoryPath)) {
     Write-Verbose 'Creating temp directory...'
@@ -183,7 +186,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         throw "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
     }
     else {
-        Write-Host 'Disk space is OK' -ForegroundColor Green
+        Write-Host 'Disk space is OK.' -ForegroundColor Green
     }
 
     # Check OneDrive sync state.
@@ -191,12 +194,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     $oneDriveSyncState = Get-OneDriveSyncState
     if ($oneDriveSyncState -ne 'Healthy') {
         Write-Host "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState" -ForegroundColor Red
-        Write-Host 'Make sure your OneDrive is enabled and synchronized.' -ForegroundColor Yellow
+        Write-Host 'Cancel the script, verify that OneDrive is enabled and synchronized, then start the script again.' -ForegroundColor Yellow
         Out-LogFile @logParams -Content "OneDrive sync state is degraded. Status from diagnostics log: $oneDriveSyncState"
         Read-Host 'Press <Enter> to proceed with the upgrade anyway or <Ctrl+C> to cancel'
     }
     else {
-        Write-Host 'OneDrive is synced' -ForegroundColor Green
+        Write-Host 'OneDrive is synced.' -ForegroundColor Green
     }
 
     # Check if secure boot is enabled.
@@ -204,19 +207,19 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     if ((Get-Command -Name 'Confirm-SecureBootUEFI' -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
         try {
             if (-not (Confirm-SecureBootUEFI -ErrorAction SilentlyContinue)) {
-                Write-Host "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings." -ForegroundColor Yellow
+                Write-Host "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings. The upgrade can proceed anyway." -ForegroundColor Yellow
                 Out-LogFile @logParams -Content "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings."
             }
             else {
-                Write-Host 'Secure Boot is enabled' -ForegroundColor Green
+                Write-Host 'Secure Boot is enabled.' -ForegroundColor Green
             }
         }
         catch {
-            Write-Warning 'Unable to validate if Secure Boot is enabled. The upgrade can proceed anyway.'
+            Write-Host 'Unable to validate if Secure Boot is enabled. The upgrade can proceed anyway.' -ForegroundColor Yellow
         }
     }
     else {
-        Write-Warning 'Unable to verify Secure Boot state. The upgrade can proceed anyway.'
+        Write-Host 'Unable to verify Secure Boot state. The upgrade can proceed anyway.' -ForegroundColor Yellow
     }
 
     # Check if TPM is active.
@@ -227,7 +230,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         throw 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
     }
     else {
-        Write-Host 'TPM is enabled' -ForegroundColor Green
+        Write-Host 'TPM is enabled.' -ForegroundColor Green
     }
 
     # Allow upgrade on older devices.
@@ -265,17 +268,17 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         }
     }
 
-    $registryWindowsUpdatePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
-    if (Test-Path -Path $registryWindowsUpdatePath) {
-        Write-Verbose 'Removing Windows Update release version registry values...'
-        Remove-ItemProperty -Path $registryWindowsUpdatePath -Name @('TargetReleaseVersion', 'TargetReleaseVersionInfo') -Force -ErrorAction SilentlyContinue | Out-Null
-    }
+    # $registryWindowsUpdatePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
+    # if (Test-Path -Path $registryWindowsUpdatePath) {
+    #     Write-Verbose 'Removing Windows Update release version registry values...'
+    #     Remove-ItemProperty -Path $registryWindowsUpdatePath -Name @('TargetReleaseVersion', 'TargetReleaseVersionInfo') -Force -ErrorAction SilentlyContinue | Out-Null
+    # }
 
-    $registryWindowsUpdateUxSettingsPath = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
-    if (Test-Path -Path $registryWindowsUpdateUxSettingsPath) {
-        Write-Verbose 'Removing Windows Update offer declined registry value...'
-        Remove-ItemProperty -Path $registryWindowsUpdateUxSettingsPath -Name 'SvOfferDeclined' -Force -ErrorAction SilentlyContinue | Out-Null
-    }
+    # $registryWindowsUpdateUxSettingsPath = 'HKLM:\SOFTWARE\Microsoft\WindowsUpdate\UX\Settings'
+    # if (Test-Path -Path $registryWindowsUpdateUxSettingsPath) {
+    #     Write-Verbose 'Removing Windows Update offer declined registry value...'
+    #     Remove-ItemProperty -Path $registryWindowsUpdateUxSettingsPath -Name 'SvOfferDeclined' -Force -ErrorAction SilentlyContinue | Out-Null
+    # }
 
     # Stop any currently running Windows upgrade processes.
     $installationAssistantProcessName = 'Windows10UpgraderApp'
@@ -314,12 +317,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
             Out-LogFile @logParams -Content 'Exited the upgrade process.'
 
             if ($upgradeTotalMinutes -lt 15) {
-                Write-Warning "The upgrade has probably failed. The process time was short ($upgradeTotalMinutesRounded minutes)."
-                Out-LogFile @logParams -Content "The upgrade has probably failed. The process time was very short ($upgradeTotalMinutesRounded) minutes)."
+                Write-Host "The upgrade has probably failed. The process time was short (~$upgradeTotalMinutesRounded minutes)." -ForegroundColor Red
+                Out-LogFile @logParams -Content "The upgrade has probably failed. The process time was short (~$upgradeTotalMinutesRounded) minutes)."
             }
             else {
                 Start-Sleep -Seconds 60
-                Write-Warning 'The upgrade has probably failed. The computer should have restarted itself by now.'
+                Write-Host "The upgrade has probably failed. The computer should have restarted itself by now." -ForegroundColor Red
                 Out-LogFile @logParams -Content 'The upgrade has probably failed. The computer should have restarted itself by now.'
             }
         }
