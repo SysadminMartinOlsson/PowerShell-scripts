@@ -178,6 +178,52 @@ if ($osName -match 'Windows 10') {
 
 # Only upgrade if the system is eligible for upgrade (or if using the Force parameter).
 if ($isSystemEligibleForUpgrade -or $Force) {
+    # Check if TPM is active.
+    Write-Host "`nChecking TPM..."
+    $tpm = Get-WmiObject -Namespace 'Root\CIMv2\Security\MicrosoftTpm' -Class Win32_Tpm
+    if (($null -eq $tpm) -or (-not $tpm.IsEnabled_InitialValue) -or (-not $tpm.IsActivated_InitialValue)) {
+        Out-LogFile @logParams -Content 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
+        throw 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
+    }
+    else {
+        Write-Host 'TPM is enabled.' -ForegroundColor Green
+    }
+
+    # Allow upgrade on older devices.
+    $tpmMajorVersion = $tpm.SpecVersion.Split(',')[0] -as [int]
+    if ($tpmMajorVersion -lt 2) {
+        Write-Verbose 'The script determined that this is an older device but will try to allow the upgrade anyway.'
+        try {
+            $registrySystemSetupPath = 'HKLM:\SYSTEM\Setup\MoSetup'
+            if (-not (Test-Path -Path $registrySystemSetupPath)) {
+                Write-Verbose 'Creating system setup registry key...'
+                New-Item -Path $registrySystemSetupPath -ErrorAction Stop
+            }
+            
+            if (Test-Path -Path $registrySystemSetupPath) {
+                $registryAllowUpgradeName = 'AllowUpgradesWithUnsupportedTPMOrCPU'
+                if ($null -eq (Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue)) {
+                    Write-Verbose 'Creating system setup registry value...'
+                    New-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -PropertyType 'DWORD' -Value 1 -ErrorAction Stop | Out-Null
+                    Out-LogFile @logParams -Content 'Added value to the registry to allow upgrade on an older device.'
+                }
+                elseif ((Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue).($registryAllowUpgradeName) -ne 1) {
+                    Write-Verbose 'Updating existing system setup registry value...'
+                    Set-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -Value 1 -ErrorAction Stop | Out-Null
+                    Out-LogFile @logParams -Content 'Updated value in the registry to allow upgrade on an older device.'
+                }
+            }
+            else {
+                Write-Error "Failed to find the registry key '$registrySystemSetupPath'."
+                Out-LogFile @logParams -Content "Failed to find the registry key '$registrySystemSetupPath'."
+            }
+        }
+        catch {
+            Write-Error "Failed to configure the registry to allow upgrade on an older device. $PSItem"
+            Out-LogFile @logParams -Content "Failed to configure the registry to allow upgrade on an older device. $PSItem"
+        }
+    }
+
     # Check free storage space.
     Write-Host "`nChecking available disk space..."
     $properties = @(
@@ -226,52 +272,6 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     # else {
     #     Write-Host 'Unable to verify Secure Boot state. The upgrade will proceed anyway.' -ForegroundColor Yellow
     # }
-
-    # Check if TPM is active.
-    Write-Host "`nChecking TPM..."
-    $tpm = Get-WmiObject -Namespace 'Root\CIMv2\Security\MicrosoftTpm' -Class Win32_Tpm
-    if (($null -eq $tpm) -or (-not $tpm.IsEnabled_InitialValue) -or (-not $tpm.IsActivated_InitialValue)) {
-        Out-LogFile @logParams -Content 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
-        throw 'TPM is not enabled (or not activated). Enable/activate the TPM in the BIOS settings to be able to upgrade.'
-    }
-    else {
-        Write-Host 'TPM is enabled.' -ForegroundColor Green
-    }
-
-    # Allow upgrade on older devices.
-    $tpmMajorVersion = $tpm.SpecVersion.Split(',')[0] -as [int]
-    if ($tpmMajorVersion -lt 2) {
-        Write-Verbose 'The script determined that this is an older device but will try to allow the upgrade anyway.'
-        try {
-            $registrySystemSetupPath = 'HKLM:\SYSTEM\Setup\MoSetup'
-            if (-not (Test-Path -Path $registrySystemSetupPath)) {
-                Write-Verbose 'Creating system setup registry key...'
-                New-Item -Path $registrySystemSetupPath -ErrorAction Stop
-            }
-            
-            if (Test-Path -Path $registrySystemSetupPath) {
-                $registryAllowUpgradeName = 'AllowUpgradesWithUnsupportedTPMOrCPU'
-                if ($null -eq (Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue)) {
-                    Write-Verbose 'Creating system setup registry value...'
-                    New-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -PropertyType 'DWORD' -Value 1 -ErrorAction Stop | Out-Null
-                    Out-LogFile @logParams -Content 'Added value to the registry to allow upgrade on an older device.'
-                }
-                elseif ((Get-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -ErrorAction SilentlyContinue).($registryAllowUpgradeName) -ne 1) {
-                    Write-Verbose 'Updating existing system setup registry value...'
-                    Set-ItemProperty -Path $registrySystemSetupPath -Name $registryAllowUpgradeName -Value 1 -ErrorAction Stop | Out-Null
-                    Out-LogFile @logParams -Content 'Updated value in the registry to allow upgrade on an older device.'
-                }
-            }
-            else {
-                Write-Error "Failed to find the registry key '$registrySystemSetupPath'."
-                Out-LogFile @logParams -Content "Failed to find the registry key '$registrySystemSetupPath'."
-            }
-        }
-        catch {
-            Write-Error "Failed to configure the registry to allow upgrade on an older device. $PSItem"
-            Out-LogFile @logParams -Content "Failed to configure the registry to allow upgrade on an older device. $PSItem"
-        }
-    }
 
     # $registryWindowsUpdatePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     # if (Test-Path -Path $registryWindowsUpdatePath) {
