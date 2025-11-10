@@ -130,8 +130,9 @@ function Out-LogFile {
     ('[{0} | v{1}] {2}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $ScriptVersion, $Content) | Out-File -FilePath $FilePath -Append -ErrorAction Continue
 }
 
+Write-Host '---------------------' -ForegroundColor Cyan
 Write-Host 'UPGRADE TO WINDOWS 11' -ForegroundColor Cyan
-Write-Host
+Write-Host '---------------------' -ForegroundColor Cyan
 
 $systemDrive = $env:SystemDrive
 if ([string]::IsNullOrEmpty($systemDrive)) {
@@ -267,6 +268,8 @@ if ($isSystemEligibleForUpgrade -or $Force) {
             Out-LogFile @logParams -Content "Failed to configure the registry to allow upgrade on an older device. $PSItem"
         }
     }
+
+    Read-Host 'Press <Enter> to start the upgrade or <Ctrl+C> to cancel'
 
     # $registryWindowsUpdatePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate'
     # if (Test-Path -Path $registryWindowsUpdatePath) {
