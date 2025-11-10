@@ -135,7 +135,7 @@ Write-Host 'UPGRADE TO WINDOWS 11' -ForegroundColor Cyan
 Write-Host '---------------------' -ForegroundColor Cyan
 
 Write-Host "`nThis script will attempt to upgrade your system to Windows 11." -ForegroundColor Yellow
-Write-Host 'The upgrade will take approximately 30-45 minutes.' -ForegroundColor Yellow
+Write-Host 'The upgrade should take approximately 30-45 minutes.' -ForegroundColor Yellow
 Read-Host 'Press <Enter> to start the upgrade or <Ctrl+C> to cancel'
 
 $systemDrive = $env:SystemDrive
