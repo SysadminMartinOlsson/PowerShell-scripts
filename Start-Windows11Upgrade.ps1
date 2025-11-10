@@ -207,25 +207,25 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         Write-Host 'OneDrive is synced.' -ForegroundColor Green
     }
 
-    # Check if secure boot is enabled.
-    Write-Host "`nChecking Secure Boot..."
-    if ((Get-Command -Name 'Confirm-SecureBootUEFI' -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
-        try {
-            if (-not (Confirm-SecureBootUEFI -ErrorAction SilentlyContinue)) {
-                Write-Host "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings. The upgrade can proceed anyway." -ForegroundColor Yellow
-                Out-LogFile @logParams -Content "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings."
-            }
-            else {
-                Write-Host 'Secure Boot is enabled.' -ForegroundColor Green
-            }
-        }
-        catch {
-            Write-Host 'Unable to validate if Secure Boot is enabled. The upgrade can proceed anyway.' -ForegroundColor Yellow
-        }
-    }
-    else {
-        Write-Host 'Unable to verify Secure Boot state. The upgrade can proceed anyway.' -ForegroundColor Yellow
-    }
+    # # Check if secure boot is enabled.
+    # Write-Host "`nChecking Secure Boot..."
+    # if ((Get-Command -Name 'Confirm-SecureBootUEFI' -ErrorAction SilentlyContinue | Measure-Object).Count -gt 0) {
+    #     try {
+    #         if (-not (Confirm-SecureBootUEFI -ErrorAction SilentlyContinue)) {
+    #             Write-Host "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings. The upgrade will proceed anyway." -ForegroundColor Yellow
+    #             Out-LogFile @logParams -Content "Secure Boot is disabled. It's recommended (but not required) to enable it in the BIOS settings."
+    #         }
+    #         else {
+    #             Write-Host 'Secure Boot is enabled.' -ForegroundColor Green
+    #         }
+    #     }
+    #     catch {
+    #         Write-Host 'Unable to validate if Secure Boot is enabled. The upgrade will proceed anyway.' -ForegroundColor Yellow
+    #     }
+    # }
+    # else {
+    #     Write-Host 'Unable to verify Secure Boot state. The upgrade will proceed anyway.' -ForegroundColor Yellow
+    # }
 
     # Check if TPM is active.
     Write-Host "`nChecking TPM..."
@@ -310,7 +310,7 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         try {
             $startDateTime = Get-Date
             Write-Host "`nStarted the Windows 11 upgrade at $($startDateTime.ToShortTimeString())." -ForegroundColor Green
-            Write-Host 'The computer will automatically reboot when the upgrade has finished.'
+            Write-Host 'The computer will automatically reboot when the upgrade has finished.' -ForegroundColor Yellow
             Write-Host 'Installing Windows 11...'
             Out-LogFile @logParams -Content 'Started the Windows 11 upgrade.'
             Start-Process -FilePath $installerFilePath -ArgumentList @('/QuietInstall /SkipEULA /Auto Upgrade /NoRestartUI /CopyLogs {0}' -f $tempDirectoryPath) -Wait
