@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.9.1
+.VERSION 2025.11.1
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -135,7 +135,7 @@ Write-Host 'UPGRADE TO WINDOWS 11' -ForegroundColor Cyan
 Write-Host '---------------------' -ForegroundColor Cyan
 
 Write-Host "`nThis script will attempt to upgrade your system to Windows 11." -ForegroundColor Yellow
-Write-Host 'The upgrade should take approximately 30-45 minutes.' -ForegroundColor Yellow
+Write-Host 'The upgrade should take around 30-60 minutes.' -ForegroundColor Yellow
 Read-Host 'Press <Enter> to start the upgrade or <Ctrl+C> to cancel'
 
 $systemDrive = $env:SystemDrive
