@@ -302,8 +302,12 @@ if ($isSystemEligibleForUpgrade -or $Force) {
         }
         catch {
             Write-Error "Failed to download the Windows 11 installation assistant. $PSItem"
-            Out-LogFile @logParams -Content "Failed to downloaded the Windows 11 installation assistant. $PSItem"
+            Out-LogFile @logParams -Content "Failed to download the Windows 11 installation assistant. $PSItem"
         }
+    }
+
+    if (-not (Test-Path -Path $installerFilePath -PathType Leaf)) {
+        throw "Unable to find the Windows 11 installation assistant file: $installerFilePath"
     }
 
     if ($PSCmdlet.ShouldProcess("File: $installerFilePath", 'Start Windows 11 upgrade')) {
