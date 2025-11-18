@@ -233,8 +233,8 @@ if ($isSystemEligibleForUpgrade -or $Force) {
     $requiredDiskSpace = 64
     if ($diskInfo.FreeSpaceGB -lt $requiredDiskSpace) {
         $freeDiskSpaceRounded = [Math]::Floor($diskInfo.FreeSpaceGB)
-        Out-LogFile @logParams -Content "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
-        throw "Windows requires at least $freeDiskSpaceRounded GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
+        Out-LogFile @logParams -Content "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
+        throw "Windows requires at least $requiredDiskSpace GB free disk space to be able to upgrade. Currently available: $freeDiskSpaceRounded GB"
     }
     else {
         Write-Host 'Disk space is OK.' -ForegroundColor Green
