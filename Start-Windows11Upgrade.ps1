@@ -1,6 +1,6 @@
 <#PSScriptInfo
 
-.VERSION 2025.11.1
+.VERSION 2025.11.2
 
 .GUID 309659cf-0358-4996-9992-34f8a7dc09b9
 
@@ -347,3 +347,4 @@ else {
     }
     throw "The script has determined that this isn't a Windows 10 system. Use the Force parameter if you want to bypass this check and run the upgrade anyway."
 }
+
